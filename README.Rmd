@@ -1,0 +1,129 @@
+---
+title: Determination of class activity of quantified self measurements using a machine learning approach
+output: 
+  html_document: 
+    highlight: pygments
+    keep_md: yes
+    theme: spacelab
+---
+
+ 
+```{r Global, echo = FALSE}
+library(knitr)
+opts_chunk$set(message = FALSE, warning = FALSE)
+```
+
+# Background
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement -- a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks.
+
+One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, we use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants whom were asked to perform barbell lifts correctly and incorrectly in 5 different ways. The goal of this project is to predict the manner (i.e., class) in which they did the exercise.
+
+# Getting and cleaning the data 
+The training data for this project was downloaded from [https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv](https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv). The data for this project came from [http://groupware.les.inf.puc-rio.br/har](http://groupware.les.inf.puc-rio.br/har). First we load the dataset in R.
+
+```{r data}
+# Loading dataset
+data <- read.csv("pml-training.csv", na.strings = c("NA", ""))
+```
+
+We then remove all columns with NA values:
+
+```{r NoNA}
+data <- data[, colSums(is.na(data)) == 0]
+```
+
+Finally, we remove the first 7 columns since they include data that is not useful for the analysis.
+
+```{r No6}
+data <- data[,-c(1:7)]
+```
+
+The dataset that will be used for data analysis has the following dimensions:
+
+```{r Dim}
+dim(data)
+```
+
+# Data analysis
+We will use a machine learning approach to predict the class activity using all the variables in the dataset. For doing so, we will first create train and test sets, and then we will use classification algorithms for prediction. Finally, we will select the best algorithm based on the results of the [cross validation](https://en.wikipedia.org/wiki/Cross-validation_(statistics)) and [confussion matrix](https://en.wikipedia.org/wiki/Confusion_matrix).
+
+For the conclusion of this project we will use the winner prediction algorithm to predict the class activity in another test set (available from [https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv](https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv)).
+
+Data analysis will be carried out using R version 3.2.2 "Fire Safety" running inside RStudio version 0.99.441. The following packages will be used:
+
+```{r Libraries}
+library(caret)
+library(rpart)
+library(randomForest)
+```
+
+## Data partition
+We will begin our analysis by splittin the dataset in a training set (60% of the full dataset) and a testing set (40% of the full dataset).
+
+```{r Partition}
+set.seed(070891)
+inTrain <- createDataPartition(y = data$classe, p = .6, list = FALSE)
+training <- data[inTrain, ]
+testing <- data[-inTrain, ]
+dim(training)
+```
+
+We will use the training set for building the prediction models and the testing set for cross validation of the models. We will use the out-of-sample error as a measurement of the model's performance. The out-of-sample error is defined as:
+
+$OSE = 1 - AC$
+
+in which $OSE =$ out-of-sample error and $AC =$ accuracy obtained from a confusion matrix.
+
+## Decission tree
+We will begin by building a decision tree using the `rpart()` function from the [rpart](https://cran.r-project.org/web/packages/rpart/index.html) package, including all predictors. We will then cross validate the model in the testing set using `predict()` and evaluate the performance of the model using the `confusionMatrix()` function.
+
+```{r CART_model}
+set.seed(070891)
+modelFit_ct <- rpart(classe ~ ., data = training, method = "class")
+modelPred_ct <- predict(modelFit_ct, testing, type = "class")
+confusionMatrix(modelPred_ct, testing$classe)
+```
+
+As seen, the performace of this model is not quite good, with an accuracy of around 74%. Thus, the estimated out-of-sample error is about 26%. Clearly, a more sofisticated approach is needed.
+
+## Random forests
+Our next approach will be to use the `randomForest()` function from the [randomForest](https://cran.r-project.org/web/packages/randomForest/index.html) package, once again including all predictors. As before, we will cross validate the model in the testing set using `predict()` and evaluate the performance of the model using the `confusionMatrix()` function.
+
+```{r RF_model}
+set.seed(070891)
+modelFit_rf <- randomForest(classe ~ ., data = training)
+modelPred_rf <- predict(modelFit_rf, testing, type = "class")
+confusionMatrix(modelPred_rf, testing$classe)
+```
+
+As seen, by using this approach the accuracy skyrocketed to 99%. Accordingly, the estimated out-of-sample error is less than 1%. Thus, we select this model for the validation process.
+
+# Conclussion and validation
+Considering the results of the confusion matrix, we pick the last model `modelFit_rf` as the best model for predicting class activity using quantified self measurements. As the final step for this project, we will use this model to predict the class activity of a new dataset composed entirely of unseen observations, as mention before.
+
+```{r Validation}
+data_new <- read.csv("pml-testing.csv")
+pred_new <- predict(modelFit_rf, data_new, type = "class")
+pred_new
+```
+
+When we feed these results into Coursera's auto-grader for this project (see Appendix for a description of the submission process) we obtain a perfect classification in all instances. This strengthens the evidence favoring this model as the right choice for predicting class activity based on quantified self measurements.
+
+# Appendix
+For the submission of the predictions made by our final model we used the following function (thanks to [Jeff Leek](http://jtleek.com/)) to create a text file for each prediction in the test dataset.
+
+```{r Submission}
+pml_write_files = function(x){
+  n = length(x)
+  for(i in 1:n){
+    filename = paste0("problem_id_", i, ".txt")
+    write.table(x[i], file = filename,
+      quote = FALSE,
+      row.names = FALSE,
+      col.names = FALSE)
+  }
+}
+pml_write_files(pred_new)
+```
+
+These text files were uploaded into Coursera's auto-grader for the project.
