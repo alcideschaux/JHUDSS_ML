@@ -74,9 +74,9 @@ dim(training)
 
 We will use the training set for building the prediction models and the testing set for cross validation of the models. We will use the out-of-sample error as a measurement of the model's performance. The out-of-sample error is defined as:
 
-$OSE = 1 - AC$
+*OSE = 1 - AC*
 
-in which $OSE =$ out-of-sample error and $AC =$ accuracy obtained from a confusion matrix.
+in which *OSE = out-of-sample error* and *AC = accuracy* obtained from a confusion matrix.
 
 ## Decission tree
 We will begin by building a decision tree using the `rpart()` function from the [rpart](https://cran.r-project.org/web/packages/rpart/index.html) package, including all predictors. We will then cross validate the model in the testing set using `predict()` and evaluate the performance of the model using the `confusionMatrix()` function.
