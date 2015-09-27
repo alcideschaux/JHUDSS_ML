@@ -1,5 +1,5 @@
 ---
-title: Determination of class activity of quantified self measurements using a machine learning approach
+title: Determination of class activity by using quantified self measurements -- A machine learning approach
 output: 
   html_document: 
     highlight: pygments

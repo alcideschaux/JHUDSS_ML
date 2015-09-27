@@ -1,4 +1,4 @@
-# Determination of class activity of quantified self measurements using a machine learning approach
+# Determination of class activity by using quantified self measurements -- A machine learning approach
 
  
 
